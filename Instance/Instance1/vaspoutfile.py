@@ -20,6 +20,6 @@ from pymatgen.electronic_structure.plotter import BSDOSPlotter
 
 #########
 # outcar =Outcar(r'mp-ele-inoc/OUTCAR')
-chgcar =Chgcar.from_file(r'mp-3626-refine/CHGCAR')
+chgcar =Chgcar.from_file(r'/home/iap13/wcx/cx_flies/0/CHGCAR')
 # xdatcar = Xdatcar(r'mp-3626-refine/XDATCAR')
 
