@@ -1,28 +1,18 @@
-# -*- coding: utf-8 -*-
+import mgetool
+from mgetool.show import BasePlot
+import matplotlib.pyplot as plt
+from cam.propressing.electro import ChgCar, ElfCar
+# import matplotlib
+# matplotlib.use('Agg')
 
-# @Time    : 2020/10/31 11:36
-# @Email   : 986798607@qq.com
-# @Software: PyCharm
-# @License: BSD 3-Clause
-from pymatgen.io.vasp import Chgcar
+elfcar =ChgCar.from_file(r'/home/iap13/wcx/cx_flies/0/ELFCAR')
+a = elfcar.plot_contour(show_mode="show")
+# b = elfcar.plot_mcontour3d(show_mode="save")
+# elfcar.plot_mcontour(show_mode="save")
 
-chgcar =Chgcar.from_file(r'/home/iap13/wcx/cx_flies/0/CHGCAR')
-total = chgcar.data["total"]
-total = total[::2,::2,::2]
-import plotly.graph_objects as go
-import numpy as np
+data = elfcar.elf_data[:,:,0]
+bp = BasePlot()
+bp.imshow(data)
+plt.show()
 
-np.random.seed(1)
-
-N = 70
-
-fig = go.Figure([total])
-
-# fig.update_layout(
-#     scene=dict(
-#         xaxis=dict(nticks=4, range=[-100, 100], ),
-#         yaxis=dict(nticks=4, range=[-50, 100], ),
-#         zaxis=dict(nticks=4, range=[-100, 100], ), ),
-#     width=700,
-#     margin=dict(r=20, l=10, b=10, t=10))
 
