@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="iap13@192.9.200.238:22 password">
+    <serverData>
+      <paths name="gjj">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="iap13@192.9.200.238:22 password">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/iap13/wcx/cam3d" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>
