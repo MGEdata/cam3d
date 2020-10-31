@@ -156,7 +156,7 @@ class ChgCar(Chgcar):
         plt.colorbar(mappable=img)
 
         # 3d plot
-        fig3d = plt.figure(4,figsize=(12, 8))
+        fig3d = plt.figure(4, figsize=(12, 8))
         ax3d = fig3d.gca(projection='3d')
         ax3d.plot_surface(newmx, newmy, newz, cmap=plt.cm.RdBu_r)
 

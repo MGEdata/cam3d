@@ -1,9 +1,4 @@
-
-from pymatgen.io.vasp.outputs import Chgcar,Elfcar,Vasprun,Outcar,Xdatcar
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-from pymatgen.io.vasp.outputs import Vasprun
-from pymatgen.electronic_structure.plotter import BSDOSPlotter
+from pymatgen.io.vasp.outputs import Chgcar
 
 ####dos#####
 # # read vasprun.xml，get band and dos information
@@ -20,6 +15,5 @@ from pymatgen.electronic_structure.plotter import BSDOSPlotter
 
 #########
 # outcar =Outcar(r'mp-ele-inoc/OUTCAR')
-chgcar =Chgcar.from_file(r'/home/iap13/wcx/cx_flies/0/CHGCAR')
+chgcar = Chgcar.from_file(r'/home/iap13/wcx/cx_flies/0/CHGCAR')
 # xdatcar = Xdatcar(r'mp-3626-refine/XDATCAR')
-

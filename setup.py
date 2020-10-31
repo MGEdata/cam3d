@@ -20,7 +20,7 @@ setup(
     version='0.0.1',
     keywords=['cam3d'],
     description='cam3d',
-    install_requires=['pandas', 'numpy',  'scipy', 'scikit-learn', 'joblib',
+    install_requires=['pandas', 'numpy', 'scipy', 'scikit-learn', 'joblib',
                       'requests', 'tqdm', 'six', "mgetool", ],
     include_package_data=True,
     author='wangchangxin',
