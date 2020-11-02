@@ -206,6 +206,6 @@ def visualize(img, cam, return_type="t"):
 
     result = camp + img
     result = result / (result.max())
-    if return_type is "t":
+    if return_type == "t":
         result = trans_to_tensor(result)
     return result

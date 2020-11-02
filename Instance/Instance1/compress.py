@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
 from mgetool.show import BasePlot
 
-from cam.propressing.electro import ChgCar
+
 
 # import matplotlib
 # matplotlib.use('Agg')
+from cams.propressing.electro import ChgCar
 
 elfcar = ChgCar.from_file(r'/home/iap13/wcx/cx_flies/0/ELFCAR')
 a = elfcar.plot_contour(show_mode="show")

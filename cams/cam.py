@@ -60,8 +60,8 @@ class CAM(object):
 
         # cam can be calculated from the weights of linear layer and activations
         weight_fc = list(
-            self.model._modules.get('fc').parameters())[0].to('cpu').data
-
+            self.model._modules.get('model_Linear').parameters())[0].to('cpu').data
+            # the first layer of model
         cam = self.getCAM(self.values, weight_fc, idx)
 
         return cam, idx
@@ -279,6 +279,9 @@ class SmoothGradCAMpp(CAM):
             if idx is None:
                 prob, idx = torch.max(prob, dim=1)
                 idx = idx.item()
+                probs.append(prob.item())
+            else:
+                prob, idx = torch.max(prob, dim=1)
                 probs.append(prob.item())
 
             indices.append(idx)
