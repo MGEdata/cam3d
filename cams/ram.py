@@ -39,57 +39,6 @@ class RAM(object):
         # save values of activations and gradients in target_layer
         self.values = SaveValues(self.target_layer)
 
-    def forward(self, x, idx=None):
-        """
-        Args:
-            x: input image. shape =>(1, 3, H, W)
-        Return:
-            heatmap: class activation mappings of the predicted class
-        """
-
-        # object classification
-        score = self.model(x)
-
-        prob = F.softmax(score, dim=1)
-
-        if idx is None:
-            prob, idx = torch.max(prob, dim=1)
-            idx = idx.item()
-            prob = prob.item()
-            print("predicted class ids {}\t probability {}".format(idx, prob))
-
-        # cam can be calculated from the weights of linear layer and activations
-        weight_fc = list(
-            self.model._modules.get('model_Linear').parameters())[0].to('cpu').data
-            # the first layer of model
-        cam = self.getCAM(self.values, weight_fc, idx)
-
-        return cam, idx
-
-    def __call__(self, x):
-        return self.forward(x)
-
-    def getCAM(self, values, weight_fc, idx):
-        '''
-        values: the activations and gradients of target_layer
-            activations: feature map before GAP.  shape => (1, C, H, W)
-        weight_fc: the weight of fully connected layer.  shape => (num_classes, C)
-        idx: predicted class id
-        cam: class activation map.  shape => (1, num_classes, H, W)
-        '''
-
-        cam = F.conv2d(values.activations, weight=weight_fc[:, :, None, None])
-        _, _, h, w = cam.shape
-
-        # class activation mapping only for the predicted class
-        # cam is normalized with min-max.
-        cam = cam[:, idx, :, :]
-        cam -= torch.min(cam)
-        cam /= torch.max(cam)
-        cam = cam.view(1, 1, h, w)
-
-        return cam.data
-
 
 class GradRAM(RAM):
     """ Grad CAM """
@@ -103,7 +52,7 @@ class GradRAM(RAM):
             target_layer: conv_layer you want to visualize
         """
 
-    def forward(self, x, idx=None):
+    def forward(self, x):
         """
         Args:
             x: input image. shape =>(1, 3, H, W)
@@ -115,23 +64,15 @@ class GradRAM(RAM):
         # anomaly detection
         score = self.model(x)
 
-        prob = F.softmax(score, dim=1)
-
-        if idx is None:
-            prob, idx = torch.max(prob, dim=1)
-            idx = idx.item()
-            prob = prob.item()
-            print("predicted class ids {}\t probability {}".format(idx, prob))
-
         # caluculate cam of the predicted class
-        cam = self.getGradCAM(self.values, score, idx)
+        cam = self.getGradRAM(score)
 
-        return cam, idx
+        return cam, score.cpu().data
 
     def __call__(self, x):
         return self.forward(x)
 
-    def getGradCAM(self, values, score, idx):
+    def getGradRAM(self, score):
         '''
         values: the activations and gradients of target_layer
             activations: feature map before GAP.  shape => (1, C, H, W)
@@ -142,10 +83,10 @@ class GradRAM(RAM):
 
         self.model.zero_grad()
 
-        score[0, idx].backward(retain_graph=True)
+        score.backward(retain_graph=True)
 
-        activations = values.activations
-        gradients = values.gradients
+        activations = self.values.activations
+        gradients = self.values.gradients
         n, c, _, _ = gradients.shape
 
         alpha = gradients.view(n, c, -1).mean(2)
@@ -171,7 +112,7 @@ class GradRAMpp(RAM):
             target_layer: conv_layer you want to visualize
         """
 
-    def forward(self, x, idx=None):
+    def forward(self, x):
         """
         Args:
             x: input image. shape =>(1, 3, H, W)
@@ -179,26 +120,18 @@ class GradRAMpp(RAM):
             heatmap: class activation mappings of predicted classes
         """
 
-        # object classification
+        # anomaly detection
         score = self.model(x)
 
-        prob = F.softmax(score, dim=1)
-
-        if idx is None:
-            prob, idx = torch.max(prob, dim=1)
-            idx = idx.item()
-            prob = prob.item()
-            print("predicted class ids {}\t probability {}".format(idx, prob))
-
         # caluculate cam of the predicted class
-        cam = self.getGradCAMpp(self.values, score, idx)
+        cam = self.getGradCAMpp(score)
 
-        return cam, idx
+        return cam, score.cpu().data
 
     def __call__(self, x):
         return self.forward(x)
 
-    def getGradCAMpp(self, values, score, idx):
+    def getGradCAMpp(self, score):
         '''
         values: the activations and gradients of target_layer
             activations: feature map before GAP.  shape => (1, C, H, W)
@@ -206,13 +139,12 @@ class GradRAMpp(RAM):
         idx: predicted class id
         cam: class activation map.  shape=> (1, 1, H, W)
         '''
-
         self.model.zero_grad()
 
-        score[0, idx].backward(retain_graph=True)
+        score.backward(retain_graph=True)
 
-        activations = values.activations
-        gradients = values.gradients
+        activations = self.values.activations
+        gradients = self.values.gradients
         n, c, _, _ = gradients.shape
 
         # calculate alpha
@@ -224,7 +156,7 @@ class GradRAMpp(RAM):
             denominator != 0.0, denominator, torch.ones_like(denominator))
         alpha = numerator / (denominator + 1e-7)
 
-        relu_grad = F.relu(score[0, idx].exp() * gradients)
+        relu_grad = F.relu(score.exp() * gradients)
         weights = (alpha * relu_grad).view(n, c, -1).sum(-1).view(n, c, 1, 1)
 
         # shape => (1, 1, H', W')
@@ -239,7 +171,7 @@ class GradRAMpp(RAM):
 class SmoothGradRAMpp(RAM):
     """ Smooth Grad CAM plus plus """
 
-    def __init__(self, model, target_layer, n_samples=25, stdev_spread=0.15):
+    def __init__(self, model, target_layer, n_samples=10, stdev_spread=0.15):
         super().__init__(model, target_layer)
         """
         Args:
@@ -252,7 +184,7 @@ class SmoothGradRAMpp(RAM):
         self.n_samples = n_samples
         self.stdev_spread = stdev_spread
 
-    def forward(self, x, idx=None):
+    def forward(self, x):
         """
         Args:
             x: input image. shape =>(1, 3, H, W)
@@ -263,9 +195,6 @@ class SmoothGradRAMpp(RAM):
         stdev = self.stdev_spread / (x.max() - x.min())
         std_tensor = torch.ones_like(x) * stdev
 
-        indices = []
-        probs = []
-
         for i in range(self.n_samples):
             self.model.zero_grad()
 
@@ -274,19 +203,7 @@ class SmoothGradRAMpp(RAM):
 
             score = self.model(x_with_noise)
 
-            prob = F.softmax(score, dim=1)
-
-            if idx is None:
-                prob, idx = torch.max(prob, dim=1)
-                idx = idx.item()
-                probs.append(prob.item())
-            else:
-                prob, idx = torch.max(prob, dim=1)
-                probs.append(prob.item())
-
-            indices.append(idx)
-
-            score[0, idx].backward(retain_graph=True)
+            score.backward(retain_graph=True)
 
             activations = self.values.activations
             gradients = self.values.gradients
@@ -302,7 +219,7 @@ class SmoothGradRAMpp(RAM):
                 denominator != 0.0, denominator, torch.ones_like(denominator))
             alpha = numerator / (denominator + 1e-7)
 
-            relu_grad = F.relu(score[0, idx].exp() * gradients)
+            relu_grad = F.relu(score.exp() * gradients)
             weights = \
                 (alpha * relu_grad).view(n, c, -1).sum(-1).view(n, c, 1, 1)
 
@@ -318,12 +235,8 @@ class SmoothGradRAMpp(RAM):
                 total_cams += cam
 
         total_cams /= self.n_samples
-        idx = mode(indices)
-        prob = mean(probs)
 
-        print("predicted class ids {}\t probability {}".format(idx, prob))
-
-        return total_cams.data, idx
+        return total_cams.data, score
 
     def __call__(self, x):
         return self.forward(x)

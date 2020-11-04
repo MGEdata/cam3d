@@ -239,7 +239,7 @@ class GradCAMpp(CAM):
 class SmoothGradCAMpp(CAM):
     """ Smooth Grad CAM plus plus """
 
-    def __init__(self, model, target_layer, n_samples=25, stdev_spread=0.15):
+    def __init__(self, model, target_layer, n_samples=10, stdev_spread=0.15):
         super().__init__(model, target_layer)
         """
         Args:

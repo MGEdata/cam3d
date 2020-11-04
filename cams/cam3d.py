@@ -39,62 +39,6 @@ class CAM(object):
         # save values of activations and gradients in target_layer
         self.values = SaveValues(self.target_layer)
 
-    def forward(self, x, idx=None):
-        """
-        Args:
-            x: input image. shape =>(1, 3, H, W)
-        Return:
-            heatmap: class activation mappings of the predicted class
-        """
-
-        # object classification
-        score = self.model(x)
-
-        prob = F.softmax(score, dim=1)
-
-        if idx is None:
-            prob, idx = torch.max(prob, dim=1)
-            idx = idx.item()
-            prob = prob.item()
-            print("predicted class ids {}\t probability {}".format(idx, prob))
-
-        # cam can be calculated from the weights of linear layer and activations
-        # target_layer and the weight_fc should be with same size of channel!!!!
-        # for example:
-            # The out put size of AdaptiveAvgPool need be (h,w,t):(1,1,1) ，and
-            # target_layer: the last of conv layer,
-            # weight_fc: the first layer of  fully connected layer
-        weight_fc = list(
-            self.model._modules.get('model_Linear').parameters())[0].to('cpu').data
-
-        cam = self.getCAM(self.values, weight_fc, idx)
-
-        return cam, idx
-
-    def __call__(self, x):
-        return self.forward(x)
-
-    def getCAM(self, values, weight_fc, idx):
-        '''
-        values: the activations and gradients of target_layer
-            activations: feature map before GAP.  shape => (1, C, H, W, T)
-        weight_fc: the weight of fully connected layer.  shape => (num_classes, C)
-        idx: predicted class id
-        cam: class activation map.  shape => (1, num_classes, H, W)
-        '''
-
-        cam = F.conv3d(values.activations, weight=weight_fc[:, :, None, None, None])
-        _, _, h, w, t = cam.shape
-
-        # class activation mapping only for the predicted class
-        # cam is normalized with min-max.
-        cam = cam[:, idx, :, :, :]
-        cam -= torch.min(cam)
-        cam /= torch.max(cam)
-        cam = cam.view(1, 1, h, w, t)
-
-        return cam.data
-
 
 class GradCAM(CAM):
     """ Grad CAM """
@@ -147,6 +91,8 @@ class GradCAM(CAM):
 
         self.model.zero_grad()
 
+        print(score.shape)
+
         score[0, idx].backward(retain_graph=True)
 
         activations = values.activations
@@ -156,7 +102,7 @@ class GradCAM(CAM):
         alpha = gradients.view(n, c, -1).mean(2)
         alpha = alpha.view(n, c, 1, 1, 1)
 
-        # shape => (1, 1, H', W,T')
+        # shape => (1, 1, H, W,T')
         cam = (alpha * activations).sum(dim=1, keepdim=True)
         cam = F.relu(cam)
         cam -= torch.min(cam)
@@ -230,7 +176,7 @@ class GradCAMpp(CAM):
         alpha = numerator / (denominator + 1e-7)
 
         relu_grad = F.relu(score[0, idx].exp() * gradients)
-        weights = (alpha * relu_grad).view(n, c, -1).sum(-1).view(n, c, 1, 1,1)
+        weights = (alpha * relu_grad).view(n, c, -1).sum(-1).view(n, c, 1, 1, 1)
 
         # shape => (1, 1, H', W,T')
         cam = (weights * activations).sum(1, keepdim=True)
@@ -244,7 +190,7 @@ class GradCAMpp(CAM):
 class SmoothGradCAMpp(CAM):
     """ Smooth Grad CAM plus plus """
 
-    def __init__(self, model, target_layer, n_samples=25, stdev_spread=0.15):
+    def __init__(self, model, target_layer, n_samples=10, stdev_spread=0.15):
         super().__init__(model, target_layer)
         """
         Args:
