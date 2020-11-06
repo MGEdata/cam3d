@@ -7,10 +7,10 @@ from mgetool.show import BasePlot
 # matplotlib.use('Agg')
 from cams.propressing.electro import ChgCar
 
-elfcar = ChgCar.from_file(r'/home/iap13/wcx/cx_flies/0/ELFCAR')
+elfcar = ChgCar.from_file(r'C:\Users\Administrator\Desktop/CHGCAR')
 a = elfcar.plot_contour(show_mode="show")
-# b = elfcar.plot_mcontour3d(show_mode="save")
-# elfcar.plot_mcontour(show_mode="save")
+b = elfcar.plot_mcontour3d(show_mode="show")
+# elfcar.plot_field(show_mode="show",vmin=0.5,vmax=1.0)
 
 data = elfcar.elf_data[:, :, 0]
 bp = BasePlot()
