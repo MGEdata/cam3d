@@ -53,7 +53,7 @@ class Indexes1xNoWeight(Module):
         self.index_tensor.requires_grad = True
 
     def forward(self, input: Tensor) -> Tensor:
-        return multiply(input, self.index_tensor.to(input.device))
+        return multiply(input, self.index_tensor.to(input.device))+1e-8
         # self.generate_tensor(self, input.shape)
         # return multiply(multiply(input, self.weight), self.index_tensor)
 
@@ -97,9 +97,6 @@ class IndexesNoWeight(Indexes1xNoWeight):
 
         self.index_tensor = torch.cat(its, dim=1)
         self.index_tensor.requires_grad = True
-
-    def forward(self, input: Tensor) -> Tensor:
-        return multiply(input, self.index_tensor.to(input.device))
 
     def extra_repr(self) -> Tensor:
         return 'In={in_channels}, Out={in_channels}, {indexes_shape}, ' \
@@ -158,7 +155,7 @@ class Indexes1x(Module):
             init.uniform_(self.bias, -bound, bound)
 
     def forward(self, input: Tensor) -> Tensor:
-        return multiply(multiply(input, self.weight), self.index_tensor.to(input.device))
+        return multiply(multiply(input, self.weight), self.index_tensor.to(input.device))+1e-8
         # self.generate_tensor(self, input.shape)
         # return multiply(multiply(input, self.weight), self.index_tensor)
 

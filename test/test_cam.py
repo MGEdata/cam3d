@@ -21,21 +21,20 @@ class Moudle1(Module):
         super(Moudle1, self).__init__()
 
         D_in, dens_out = 1, 1
-        D1, D2 = 32, 32
-        dense1, dense2 = 300, 300
+        D1, D2 = 6, 32
+        dense1, dense2 = 500, 100
         AvgPool3d_x, AvgPool3d_y, AvgPool3d_z = 10, 10, 10
         self.link = D2 * AvgPool3d_x * AvgPool3d_y * AvgPool3d_x
 
         model_conv = nn.Sequential(
 
-            # nn.Conv3d(D_in, D2, 1, stride=1, padding=0),
-            Indexes(in_channels=D_in, out_channels=D2, shape=(10, 10, 10)),
+            nn.Conv3d(D_in, D2, 1, stride=1, padding=0),
             # nn.BatchNorm3d(D2),
-            # nn.ReLU(True),
+            nn.ReLU(True),
             # nn.MaxPool3d(3, stride=1, padding=1),
-            # nn.Dropout3d(0.1)
+            nn.Dropout3d(0.1)
         )
-
+        model_sigmod = nn.Sigmoid()
         model_Linear = nn.Sequential(
             nn.Linear(self.link, dense1),
             nn.ReLU(True),
@@ -48,6 +47,7 @@ class Moudle1(Module):
         )
 
         self.model_conv = model_conv
+        self.model_sigmod = model_sigmod
         self.avgpool = nn.AdaptiveAvgPool3d((AvgPool3d_x, AvgPool3d_y, AvgPool3d_z))
         self.model_Linear = model_Linear
 
@@ -55,6 +55,8 @@ class Moudle1(Module):
         if t == 0:
             x = self.model_conv(x)
             print("conv out", x.shape)
+            x = self.model_sigmod(x)
+
             x = self.avgpool(x)
             print("avgpool", x.shape)
             x = torch.flatten(x, start_dim=1, end_dim=-1)
@@ -75,8 +77,9 @@ def run(train, test=None):
         test = train
     train_x, train_y = train
     model = Moudle1()
-    # device = torch.device('cuda:0')
-    device = torch.device('cpu')
+    device = torch.device('cuda:0')
+    model.to(device)
+    # device = torch.device('cpu')
     learning_rate = 1e-4
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)  # 鍏锋湁閫氱敤浼樺寲绠楁硶鐨勪紭鍖栧寘锛屽SGD,Adam
 
@@ -112,7 +115,7 @@ torch.random.manual_seed(0)
 
 
 def get():
-    x = random.random((120, 10, 10, 10))/ 3 + 0.00001
+    x = random.random((120, 10, 10, 10)) + 0.00001
 
     key = np.full((3,3,3),0.5)
     key[1,1,1]=1.0
@@ -125,8 +128,8 @@ def get():
         # x[ai, i:i + 3, j:j + 3, k:k + 3] = x[ai, i:i + 3, j:j + 3, k:k + 3] + key
         l1, l2, l3 = random.randint(0, 8, 3)
         x[ai, l1:l1 + 3, l2:l2 + 3, l3:l3 + 3] = x[ai, l1:l1 + 3, l2:l2 + 3, l3:l3 + 3] + key/3
-        # y.append((i ** 2 + j ** 2 + k ** 2) ** 0.5)
-        y.append((i + j + k))
+        y.append((i ** 2 + j ** 2 + k ** 2) ** 0.5)
+        # y.append((i + j + k))
     x = torch.tensor(x)
     x = x.unsqueeze(dim=1)
     y = torch.tensor(y).reshape((-1, 1))
