@@ -92,12 +92,16 @@ class GradRAM3d(RAM3d):
         alpha = alpha.view(n, c, 1, 1, 1)
 
         # shape => (1, 1, H', W, T')
-        RAM3d = (alpha * activations).sum(dim=1, keepdim=True)
-        RAM3d = F.relu(RAM3d)
-        RAM3d -= torch.min(RAM3d)
-        RAM3d /= torch.max(RAM3d)
+        ram3d = (alpha * activations).sum(dim=1, keepdim=True)
+        ram3d -= torch.min(ram3d)
+        ram3d /= torch.max(ram3d)
 
-        return RAM3d.data
+        ram3d_median = torch.median(ram3d)
+
+        if ram3d_median >0.85:
+            ram3d =1-ram3d
+
+        return ram3d.data
 
 
 class GradRAM3dpp(RAM3d):
@@ -161,12 +165,16 @@ class GradRAM3dpp(RAM3d):
         weights = (alpha * relu_grad).view(n, c, -1).sum(-1).view(n, c, 1, 1, 1)
 
         # shape => (1, 1, H', W')
-        RAM3d = (weights * activations).sum(1, keepdim=True)
-        RAM3d = F.relu(RAM3d)
-        RAM3d -= torch.min(RAM3d)
-        RAM3d /= torch.max(RAM3d)
+        ram3d = (weights * activations).sum(1, keepdim=True)
+        ram3d -= torch.min(ram3d)
+        ram3d /= torch.max(ram3d)
 
-        return RAM3d.data
+        ram3d_median = torch.median(ram3d)
+
+        if ram3d_median >0.85:
+            ram3d =1-ram3d
+
+        return ram3d.data
 
 
 class SmoothGradRAM3dpp(RAM3d):
@@ -225,15 +233,20 @@ class SmoothGradRAM3dpp(RAM3d):
                 (alpha * relu_grad).view(n, c, -1).sum(-1).view(n, c, 1, 1, 1)
 
             # shape => (1, 1, H', W')
-            RAM3d = (weights * activations).sum(1, keepdim=True)
-            RAM3d = F.relu(RAM3d)
-            RAM3d -= torch.min(RAM3d)
-            RAM3d /= torch.max(RAM3d)
+            ram3d = (weights * activations).sum(1, keepdim=True)
+            ram3d -= torch.min(ram3d)
+            ram3d /= torch.max(ram3d)
+
+            ram3d_median = torch.median(ram3d)
+
+            if ram3d_median > 0.85:
+                ram3d = 1 - ram3d
+
 
             if i == 0:
-                total_RAM3ds = RAM3d.clone()
+                total_RAM3ds = ram3d.clone()
             else:
-                total_RAM3ds += RAM3d
+                total_RAM3ds += ram3d
 
         total_RAM3ds /= self.n_samples
 
