@@ -9,7 +9,7 @@ li = f.readlines()
 li = "".join(li)
 f.close()
 
-a = json.read_json("dielectrics2.json", orient='columns')
+a = json.read_json("dielectricsPetousis.json", orient='columns')
 for i in range(1055):
     a00 = a.iloc[i][3]['formula']
     p = a.iloc[i][3]["space_group"]
