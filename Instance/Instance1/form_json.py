@@ -9,9 +9,12 @@ li = f.readlines()
 li = "".join(li)
 f.close()
 
-a = json.read_json("dielectrics.json", orient='columns')
-
-# a00 = a.iloc[0][0]
+a = json.read_json("dielectrics2.json", orient='columns')
+for i in range(1055):
+    a00 = a.iloc[i][3]['formula']
+    p = a.iloc[i][3]["space_group"]
+    print(a00,p)
+# a00 = a.iloc[0][3]
 # INCAR = a00["INCAR"][0]
 # INCAR = Incar.from_string(INCAR)
 # INCAR.update({"KSPACING": 0.1, "IBRION": -1, "ISIF": 2, "NELM": 200, "LELF": True, "LAECHG": True, 'LREAL': "Auto"})
