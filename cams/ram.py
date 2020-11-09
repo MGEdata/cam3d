@@ -93,12 +93,16 @@ class GradRAM(RAM):
         alpha = alpha.view(n, c, 1, 1)
 
         # shape => (1, 1, H', W')
-        cam = (alpha * activations).sum(dim=1, keepdim=True)
-        cam = F.relu(cam)
-        cam -= torch.min(cam)
-        cam /= torch.max(cam)
+        ram_ = (alpha * activations).sum(dim=1, keepdim=True)
+        ram_ -= torch.min(ram_)
+        ram_ /= torch.max(ram_)
 
-        return cam.data
+        ram_median = torch.median(ram_)
+
+        if ram_median > 0.85:
+            ram_ = 1 - ram_
+
+        return ram_.data
 
 
 class GradRAMpp(RAM):
@@ -160,12 +164,16 @@ class GradRAMpp(RAM):
         weights = (alpha * relu_grad).view(n, c, -1).sum(-1).view(n, c, 1, 1)
 
         # shape => (1, 1, H', W')
-        cam = (weights * activations).sum(1, keepdim=True)
-        cam = F.relu(cam)
-        cam -= torch.min(cam)
-        cam /= torch.max(cam)
+        ram_ = (weights * activations).sum(1, keepdim=True)
+        ram_ -= torch.min(ram_)
+        ram_ /= torch.max(ram_)
 
-        return cam.data
+        ram_median = torch.median(ram_)
+
+        if ram_median > 0.85:
+            ram_ = 1 - ram_
+
+        return ram_.data
 
 
 class SmoothGradRAMpp(RAM):
@@ -224,15 +232,19 @@ class SmoothGradRAMpp(RAM):
                 (alpha * relu_grad).view(n, c, -1).sum(-1).view(n, c, 1, 1)
 
             # shape => (1, 1, H', W')
-            cam = (weights * activations).sum(1, keepdim=True)
-            cam = F.relu(cam)
-            cam -= torch.min(cam)
-            cam /= torch.max(cam)
+            ram_ = (weights * activations).sum(1, keepdim=True)
+            ram_ -= torch.min(ram_)
+            ram_ /= torch.max(ram_)
+
+            ram_median = torch.median(ram_)
+
+            if ram_median > 0.85:
+                ram_ = 1 - ram_
 
             if i == 0:
-                total_cams = cam.clone()
+                total_cams = ram_.clone()
             else:
-                total_cams += cam
+                total_cams += ram_
 
         total_cams /= self.n_samples
 
