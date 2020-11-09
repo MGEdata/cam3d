@@ -14,6 +14,9 @@ for i in range(1055):
     a00 = a.iloc[i][3]['formula']
     p = a.iloc[i][3]["space_group"]
     print(a00,p)
+
+a = json.read_json("dielectricsQu.json", orient='columns')
+
 # a00 = a.iloc[0][3]
 # INCAR = a00["INCAR"][0]
 # INCAR = Incar.from_string(INCAR)
