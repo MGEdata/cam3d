@@ -1,50 +1,76 @@
 import os
+import warnings
 
-from pandas.io import json
-from pymatgen.io.vasp import Incar, Kpoints, Potcar, VaspInput, Poscar
+from pymatgen.io.cif import CifParser, CifFile
+from pymatgen.io.vasp import Incar, Poscar, Potcar, Kpoints, VaspInput
 from tqdm import tqdm
+
+warnings.filterwarnings("ignore")
+
 
 f = open("vasp.run")
 li = f.readlines()
 li = "".join(li)
 f.close()
 
-a = json.read_json("dielectricsPetousis.json", orient='columns')
-for i in range(1055):
-    a00 = a.iloc[i][3]['formula']
-    p = a.iloc[i][3]["space_group"]
-    print(a00,p)
+name_map = {'C': "C", 'F': "F", 'Ge': "Ge_d", 'H': "H",
+            'N': "N", "Br": "Br", "I": "I","Pb": "Pb_d",
+            "Sn": "Sn_d", "Cl": "Cl", "O": "O"}
 
-a = json.read_json("dielectricsQu.json", orient='columns')
+li2 = """
+ALGO = Fast
+EDIFF = 1e-06
+ENCUT = 600
+IBRION = -1
+ICHARG = 1
+ISIF = 2
+ISMEAR = -5
+ISPIN = 2
+ISTART = 1
+KSPACING = 0.2
+LAECHG = True
+LCHARG = True
+LELF = True
+LORBIT = 11
+LREAL = Auto
+LWAVE = False
+NELM = 200
+PREC = Accurate
+SYMPREC = 1e-08"""
 
-# a00 = a.iloc[0][3]
-# INCAR = a00["INCAR"][0]
-# INCAR = Incar.from_string(INCAR)
-# INCAR.update({"KSPACING": 0.1, "IBRION": -1, "ISIF": 2, "NELM": 200, "LELF": True, "LAECHG": True, 'LREAL': "Auto"})
-# [INCAR.pop(i) for i in ["KPOINT_BSE", "LEPSILON", "SIGMA", "MAGMOM", 'LASPH', 'LPEAD', 'LVHAR']]
+INCAR = Incar.from_string(li2)
+INCAR.update({"KSPACING": 0.1, "IBRION": -1, "ISIF": 2, "NELM": 200, "LELF": True, "LAECHG": True, 'LREAL': "Auto"})
+
+path = "/home/iap13/wcx/cam3d/Instance/Instance1/dielectricsKim/cif_merge"
+files = os.listdir(path)
+lists = []
+for k, i in tqdm(enumerate(files)):
+    f = CifFile.from_file(os.path.join(path, i))
+    cif = CifParser.from_string(f.orig_string)
+    structure = cif.get_structures()[0]
+    name = structure.symbol_set
+
+    try:
+        name = [name_map[i] for i in name]
+        POTCAR = Potcar(symbols=name)
+        POSCAR = Poscar(structure)
+    except(OSError):
+        print(name)
+
+    else:
+        KPOINT = Kpoints.automatic_density(POSCAR.structure, 3000)
+
+        file = VaspInput(INCAR, KPOINT, POSCAR, POTCAR, optional_files={"vasp.run": li})
+        file.write_input(r"/home/iap13/wcx/dielectricsKim.files/{}".format(k))
+        os.remove(r"/home/iap13/wcx/dielectricsKim.files/{}/KPOINTS".format(k))
+        lists.append(r"{}".format(k))
+
+# ############
+# cifwriter = CifWriter(structure)
+# cifwriter.write_file("cif")
+
 #
-# a00_list = a.iloc[:, 0]
-# lists = []
-# for k, a00 in tqdm(enumerate(a00_list)):
-#     formula = a00["formula"][0][0]
-#     group = a00["space group number"][0]
-#     POSCAR = a00["POSCAR"][0]
-#     KPOINTs = a00["kpoints"]
-#     name = eval(a00['POTCAR'][0])
-#     name = [i.split(" ")[1] for i in name]
-#
-#     KPOINTs.insert(2, "Line-Mode")
-#     KPOINT = Kpoints.from_string("".join(KPOINTs))
-#
-#     POTCAR = Potcar(symbols=name)
-#     POSCAR = Poscar.from_string(POSCAR)
-#
-#     file = VaspInput(INCAR, KPOINT, POSCAR, POTCAR, optional_files={"vasp.run": li})
-#     file.write_input(r"cx_flies\{}".format(k))
-#     os.remove(r"cx_flies\{}\KPOINTS".format(k))
-#     lists.append(r"{}".format(k))
-#
-# lists = ", ".join(lists)
-# f = open("name.txt", mode="w")
-# li = f.write(lists)
-# f.close()
+lists = ", ".join(lists)
+f = open("name.txt", mode="w")
+li = f.write(lists)
+f.close()

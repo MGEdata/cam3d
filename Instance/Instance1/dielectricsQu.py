@@ -35,8 +35,8 @@ for k, a00 in tqdm(enumerate(a00_list)):
     POSCAR = Poscar.from_string(POSCAR)
 
     file = VaspInput(INCAR, KPOINT, POSCAR, POTCAR, optional_files={"vasp.run": li})
-    file.write_input(r"cx_flies\{}".format(k))
-    os.remove(r"cx_flies\{}\KPOINTS".format(k))
+    file.write_input(r"/home/iap13/wcx/dielectrics.Qu/{}".format(k))
+    os.remove(r"/home/iap13/wcx/dielectrics.Qu/{}/KPOINTS".format(k))
     lists.append(r"{}".format(k))
 
 lists = ", ".join(lists)
