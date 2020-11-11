@@ -7,8 +7,8 @@ from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
 
-
-f = open("run.lsf")
+jiaoben = r"run.lsf"
+f = open(jiaoben)
 li = f.readlines()
 li = "".join(li)
 f.close()
@@ -41,7 +41,8 @@ SYMPREC = 1e-08"""
 INCAR = Incar.from_string(li2)
 INCAR.update({"KSPACING": 0.2, "IBRION": -1, "ISIF": 2, "NELM": 200, "LELF": True, "LAECHG": True, 'LREAL': "Auto"})
 
-path = "/share/home/skk/wcx/cam3d/Instance/Instance1/dielectricsKim/cif_merge"
+path = r"/share/home/skk/wcx/cam3d/Instance/Instance1/dielectricsKim"
+path = os.path.join(path, "cif_merge")
 files = os.listdir(path)
 lists = []
 for k, i in tqdm(enumerate(files)):

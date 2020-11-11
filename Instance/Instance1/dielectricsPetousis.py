@@ -5,7 +5,7 @@ from pymatgen.io.vasp import Incar, Kpoints, Potcar, VaspInput, Poscar
 from tqdm import tqdm
 
 
-f = open("run.lsf")
+f = open("others/run.lsf")
 li = f.readlines()
 li = "".join(li)
 f.close()
