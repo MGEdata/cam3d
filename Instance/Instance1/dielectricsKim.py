@@ -8,13 +8,13 @@ from tqdm import tqdm
 warnings.filterwarnings("ignore")
 
 
-f = open("vasp.run")
+f = open("run.lsf")
 li = f.readlines()
 li = "".join(li)
 f.close()
 
 name_map = {'C': "C", 'F': "F", 'Ge': "Ge_d", 'H': "H",
-            'N': "N", "Br": "Br", "I": "I","Pb": "Pb_d",
+            'N': "N", "Br": "Br", "I": "I", "Pb": "Pb_d",
             "Sn": "Sn_d", "Cl": "Cl", "O": "O"}
 
 li2 = """
@@ -39,9 +39,9 @@ PREC = Accurate
 SYMPREC = 1e-08"""
 
 INCAR = Incar.from_string(li2)
-INCAR.update({"KSPACING": 0.1, "IBRION": -1, "ISIF": 2, "NELM": 200, "LELF": True, "LAECHG": True, 'LREAL': "Auto"})
+INCAR.update({"KSPACING": 0.2, "IBRION": -1, "ISIF": 2, "NELM": 200, "LELF": True, "LAECHG": True, 'LREAL': "Auto"})
 
-path = "/home/iap13/wcx/cam3d/Instance/Instance1/dielectricsKim/cif_merge"
+path = "/share/home/skk/wcx/cam3d/Instance/Instance1/dielectricsKim/cif_merge"
 files = os.listdir(path)
 lists = []
 for k, i in tqdm(enumerate(files)):
@@ -58,18 +58,17 @@ for k, i in tqdm(enumerate(files)):
         print(name)
 
     else:
-        KPOINT = Kpoints.automatic_density(POSCAR.structure, 3000)
+        KPOINT = Kpoints.automatic_density(POSCAR.structure, 300)
 
-        file = VaspInput(INCAR, KPOINT, POSCAR, POTCAR, optional_files={"vasp.run": li})
-        file.write_input(r"/home/iap13/wcx/dielectricsKim.files/{}".format(k))
-        os.remove(r"/home/iap13/wcx/dielectricsKim.files/{}/KPOINTS".format(k))
+        file = VaspInput(INCAR, KPOINT, POSCAR, POTCAR, optional_files={"run.lsf": li})
+        file.write_input(r"/share/home/skk/wcx/dielectricsKim.files/{}".format(k))
+        os.remove(r"/share/home/skk/wcx/dielectricsKim.files/{}/KPOINTS".format(k))
         lists.append(r"{}".format(k))
 
 # ############
 # cifwriter = CifWriter(structure)
 # cifwriter.write_file("cif")
 
-#
 lists = ", ".join(lists)
 f = open("name.txt", mode="w")
 li = f.write(lists)

@@ -4,7 +4,8 @@ from pandas.io import json
 from pymatgen.io.vasp import Incar, Kpoints, Potcar, VaspInput, Poscar
 from tqdm import tqdm
 
-f = open("vasp.run")
+
+f = open("run.lsf")
 li = f.readlines()
 li = "".join(li)
 f.close()
@@ -15,13 +16,33 @@ data = a["meta"]
 
 a00 = data[0]
 
-INCAR = a00["incar"]
-INCAR = Incar.from_string(INCAR)
-INCAR.update({"KSPACING": 0.1, "IBRION": -1, "ISIF": 2, "NELM": 200, "LELF": True, "LAECHG": True, 'LREAL': "Auto"})
-[INCAR.pop(i) for i in ["NWRITE"]]
+li2 = """
+ALGO = Fast
+EDIFF = 1e-06
+ENCUT = 600
+IBRION = -1
+ICHARG = 1
+ISIF = 2
+ISMEAR = -5
+ISPIN = 2
+ISTART = 1
+KSPACING = 0.2
+LAECHG = True
+LCHARG = True
+LELF = True
+LORBIT = 11
+LREAL = Auto
+LWAVE = False
+NELM = 200
+PREC = Accurate
+SYMPREC = 1e-08"""
+
+INCAR = Incar.from_string(li2)
+INCAR.update({"KSPACING": 0.2, "IBRION": -1, "ISIF": 2, "NELM": 200, "LELF": True, "LAECHG": True, 'LREAL': "Auto"})
 
 a00_list = data
 lists = []
+
 for k, a00 in tqdm(enumerate(a00_list)):
     formula = a00["formula"]
     # group = a00["space_group"]
@@ -37,16 +58,16 @@ for k, a00 in tqdm(enumerate(a00_list)):
         pass
 
     else:
-        KPOINT = Kpoints.automatic_density(POSCAR.structure, 3000)
+        KPOINT = Kpoints.automatic_density(POSCAR.structure, 300)
 
-        file = VaspInput(INCAR, KPOINT, POSCAR, POTCAR, optional_files={"vasp.run": li})
-        file.write_input(r"/home/iap13/wcx/dielectricsPe.files/{}".format(k))
-        os.remove(r"/home/iap13/wcx/dielectricsPe.files/{}/KPOINTS".format(k))
+        file = VaspInput(INCAR, KPOINT, POSCAR, POTCAR, optional_files={"run.lsf": li})
+        file.write_input(r"/share/home/skk/wcx/dielectricsPe.files/{}".format(k))
+        os.remove(r"/share/home/skk/wcx/dielectricsPe.files/{}/KPOINTS".format(k))
         lists.append(r"{}".format(k))
 
     # break
 
 lists = ", ".join(lists)
 f = open("name.txt", mode="w")
-li = f.write(lists)
+f.write(lists)
 f.close()
