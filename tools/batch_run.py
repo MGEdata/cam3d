@@ -3,7 +3,7 @@ import os
 
 from tqdm import tqdm
 
-lsf_template240 = """
+lsf_vasp_240 = """
 #BSUB -q normal
 #BSUB -n 32
 #BSUB -o %J.out
@@ -14,7 +14,7 @@ source /share/intel/intel/bin/compilervars.sh intel64
 mpirun -np 36 vasp_std > log
 """
 
-pbs_template238_239 = """
+pbs_vasp_238_239 = """
 #SBATCH -N 1
 #SBATCH -n 36
 #SBATCH --ntasks-per-node=36
@@ -29,10 +29,19 @@ mpirun -np 36 vasp_std >log
 
 pbs_python_template = """
 #SBATCH -N 1
-#SBATCH -n 12
+#SBATCH -n 16
 #SBATCH --ntasks-per-node=36
 #SBATCH --output=%j.out
 #SBATCH --error=%j.err
+python test.py run > log
+"""
+
+lsf_python_template = """
+#BSUB -q normal
+#BSUB -n 16
+#BSUB -o %J.out
+#BSUB -e %J.err
+#BSUB -R "span[ptile=24]"
 python test.py run > log
 """
 
@@ -56,6 +65,9 @@ LWAVE = False
 NELM = 200
 PREC = Accurate
 SYMPREC = 1e-08"""
+
+temps = {"lsf_python": lsf_python_template, "pbs_python": pbs_python_template,
+         "pbs_vasp": pbs_vasp_238_239, "lsf_vasp": lsf_vasp_240}
 
 
 def upload(run_tem=None, pwd=None, filter_in=None,
@@ -111,12 +123,12 @@ def upload(run_tem=None, pwd=None, filter_in=None,
                 raise IOError("We cannot import message from {} file".format(INCAR))
 
     if run_tem is None:
-        assert existed_run_tem is not None,\
-            "Use -r, -e or both of them !!!.\n"\
+        assert existed_run_tem is not None, \
+            "Use -r, -e or both of them !!!.\n" \
             "若把模板文件复制到所有子文件夹，如：\n" \
-            "python ***.py -r \***\pbs.run\n"\
-            "若子文件夹已经存在模板，提供使用它们的文件名，如：\n"\
-            "python ***.py -e lsf.run\n"
+            "python ***.py -r \***\pbs.run\n" \
+            "若子文件夹已经存在模板，提供使用它们的文件名及类型，如：\n" \
+            "python ***.py -e lsf.run -t lsf \n"
 
     if run_tem is not None:
         if os.path.isfile(run_tem):
@@ -127,7 +139,8 @@ def upload(run_tem=None, pwd=None, filter_in=None,
             except IOError:
 
                 raise IOError("We cannot import message from {} file".format(run_tem))
-
+    elif run_tem in temps:
+        run_tem = temps[run_tem]
     if run_tem is not None:
         if job_type is None:
             if "SBATCH" in run_tem:
@@ -154,29 +167,36 @@ def upload(run_tem=None, pwd=None, filter_in=None,
     if len(files) == 0:
         raise FileNotFoundError("There is no directory left after filtering")
     for filei in tqdm(files):
-        try:
-            if run_tem is not None:
+        if run_tem is not None:
+            try:
                 existed_run_tem = existed_run_tem if existed_run_tem else "run.lsfpbs"
-
                 os.chdir(os.path.join(pwd, str(filei)))
-                # pwdpath = os.getcwd()
+                pwdpath = os.getcwd()
                 f = open(existed_run_tem, "w")
                 f.write(run_tem)
                 f.close()
-            else:
+                if INCAR is not None:
+                    f = open("INCAR", "w")
+                    f.write(INCAR)
+                    f.close()
+            except NotADirectoryError:
+                print(filei, "is a file and be filtered")
+                files.remove(filei)
+        else:
+            try:
+                existed_run_tem = existed_run_tem if existed_run_tem else "run.lsfpbs"
+                os.chdir(os.path.join(pwd, str(filei)))
+                # pwdpath = os.getcwd()
                 # assert os.path.isfile(existed_run_tem), "老夫一瞅，你的{}下没有你说的这个{}文件".format(os.getcwd(),existed_run_tem)
-                assert os.path.isfile(existed_run_tem), "there is no {} in your {}".format(existed_run_tem, os.getcwd())
-
-            if INCAR is not None:
-                f = open("INCAR", "w")
-                f.write(INCAR)
-                f.close()
-        except NotADirectoryError:
-            print(filei, "is a file and be filtered")
-            files.remove(filei)
-
-        finally:
-            pass
+                assert os.path.isfile(os.path.join(os.getcwd(), existed_run_tem)), \
+                    "There is no {} in your {}".format(existed_run_tem, os.getcwd())
+                if INCAR is not None:
+                    f = open("INCAR", "w")
+                    f.write(INCAR)
+                    f.close()
+            except NotADirectoryError:
+                print(filei, "is a file and filtered")
+                files.remove(filei)
 
     if job_type == "lsf":
         job_type = "bsub < {}".format(existed_run_tem)
@@ -202,21 +222,23 @@ done
     batch_str = batch_str.replace(",", "")
     bach = open("batch.sh", "w")
     bach.write(batch_str)
+    print("###################################################")
+    print("OK")
 
 
 ################################################################################################################
 if __name__ == '__main__':
-    #命令行模式
+    # 命令行模式
     import argparse
 
     parser = argparse.ArgumentParser(description='产生任务批处理文件,请保证 -r,-e 至少存在一个.\n'
                                                  '最方便用法: \n'
                                                  '1.把该文件放到和算例同一文件夹下，并提供 pbs or lsf 模板给 -r 参数.\n'
                                                  "python ***.py -r \***\pbs.run\n"
-                                                 "2.若算例中已经存在pbs or lsf 模板，请提供模板名字给 -e 参数.\n"
-                                                 "python ***.py -e pbs.run\n")
+                                                 "2.若算例中已经存在pbs or lsf 模板，请提供模板名字及种类给 -e, -t 参数.\n"
+                                                 "python ***.py -e pbs.run -t lsf \n")
     parser.add_argument('-r', dest='run_tem', default=None,
-                        help='{pbs,lsf}模板文件')
+                        help='{pbs,lsf}模板文件地址')
     parser.add_argument('-p', dest='pwd', default=None,
                         help='所有算例地址, 默认当前地址')
     parser.add_argument('-e', dest='existed_run_tem', default=None,

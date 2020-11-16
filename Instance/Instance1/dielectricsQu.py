@@ -4,7 +4,7 @@ from pandas.io import json
 from pymatgen.io.vasp import Incar, Kpoints, Potcar, VaspInput, Poscar
 from tqdm import tqdm
 
-f = open("others/vasp.run")
+f = open("../../tools/vasp.run")
 li = f.readlines()
 li = "".join(li)
 f.close()

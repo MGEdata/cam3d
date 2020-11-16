@@ -40,7 +40,7 @@ class CAM(object):
         self.values = SaveValues(self.target_layer)
 
 
-class GradCAM(CAM):
+class GradCAM3d(CAM):
     """ Grad CAM """
 
     def __init__(self, model, target_layer):
@@ -101,6 +101,7 @@ class GradCAM(CAM):
 
         alpha = gradients.view(n, c, -1).mean(2)
         alpha = alpha.view(n, c, 1, 1, 1)
+        # alpha = gradients
 
         # shape => (1, 1, H, W,T')
         cam = (alpha * activations).sum(dim=1, keepdim=True)
@@ -111,7 +112,7 @@ class GradCAM(CAM):
         return cam.data
 
 
-class GradCAMpp(CAM):
+class GradCAM3dpp(CAM):
     """ Grad CAM plus plus """
 
     def __init__(self, model, target_layer):
@@ -187,7 +188,7 @@ class GradCAMpp(CAM):
         return cam.data
 
 
-class SmoothGradCAMpp(CAM):
+class SmoothGradCAM3spp(CAM):
     """ Smooth Grad CAM plus plus """
 
     def __init__(self, model, target_layer, n_samples=10, stdev_spread=0.15):
