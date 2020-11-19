@@ -181,10 +181,12 @@ for i in b:
           if len(chgcar.site_symbols) ==3:
                sg = SpacegroupAnalyzer(chgcar.structure,angle_tolerance=2.5)
                sp = sg.get_space_group_symbol()
-               print(i,chgcar.comment,sp)
+               # print(i,chgcar.comment,sp)
 
                if sp in space_group:
-                   z += 1
+                   if chgcar.natoms[-1] ==3:
+                        print(i, chgcar.comment, sp)
+                        z+=1
 
      except (IndexError,ValueError,FileNotFoundError):
           # print("error",i)

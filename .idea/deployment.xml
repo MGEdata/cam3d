@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="iap13@192.9.200.239:10002">
+  <component name="PublishConfigData" autoUpload="Always" serverName="skk@192.9.200.240:22">
     <serverData>
       <paths name="gjj">
         <serverdata>
@@ -9,24 +9,31 @@
           </mappings>
         </serverdata>
       </paths>
-      <paths name="iap13@192.9.200.238:22 password">
+      <paths name="iap13@192.9.200.238:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/wcx/cam3d" local="$PROJECT_DIR$" web="/" />
+            <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
       <paths name="iap13@192.9.200.239:10002">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/iap13/wcx/cam3d" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/home/iap13/wcx/cam3d" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
-      <paths name="skk240">
+      <paths name="root@10.1.8.133:32866">
         <serverdata>
           <mappings>
-            <mapping deploy="/wcx/cam3d" local="$PROJECT_DIR$" web="/" />
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="skk@192.9.200.240:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/share/home/skk/wcx/cam3d" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
