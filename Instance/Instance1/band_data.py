@@ -4,10 +4,11 @@ import http.client
 
 conn = http.client.HTTPSConnection("api.snumat.com")
 headers = {
-    'authorization': "Basic { YOUR-KEY(ID:986798607@qq.com, PW:AAss125800) }",
+    # 'authorization': "Basic { YOUR-KEY(ID:986798607@qq.com, PW:AAss125800) }",
+'authorization': 'Basic { YOUR-KEY(ID:986798607@qq.com, PW:AAss125800) }',
 }
 
-conn.request("GET", "/v1/auth", headers=headers)
+conn.request("GET", "/v1/auth", headers={})
 
 res = conn.getresponse()
 data = res.read()

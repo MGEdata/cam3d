@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="skk@192.9.200.240:22">
+  <component name="PublishConfigData" autoUpload="Always" serverName="MachineLearning@192.9.200.233:22">
     <serverData>
+      <paths name="MachineLearning@192.9.200.233:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/public/home/MachineLearning/wcx/cam3d" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="skk@192.9.200.240:22">
         <serverdata>
           <mappings>
