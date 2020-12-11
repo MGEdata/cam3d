@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'bgp-doc'
+project = 'bgp-docs'
 copyright = '2020, boliqq07'
 author = 'boliqq07'
 
