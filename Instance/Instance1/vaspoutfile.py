@@ -3,13 +3,12 @@ import re
 
 import numpy as np
 from monty.io import zopen
-from pymatgen.io.vasp.outputs import Outcar
-
+from pymatgen.io.vasp.outputs import Outcar, Vasprun
 
 ####dos#####
-# # read vasprun.xml，get band and dos information
-# bs_vasprun = Vasprun("vasprun.xml", parse_projected_eigen=True)
-# bs_data = bs_vasprun.get_band_structure(line_mode=True)
+# read vasprun.xml，get band and dos information
+bs_vasprun = Vasprun("vasprun.xml", parse_projected_eigen=True)
+bs_data = bs_vasprun.get_band_structure(line_mode=True)
 #
 # dos_vasprun = Vasprun("vasprun.xml")
 # dos_data = dos_vasprun.complete_dos
@@ -58,11 +57,15 @@ from pymatgen.io.vasp.outputs import Outcar
 # plt.show()
 
 
-outcat = Outcar("/share/home/skk/wcx/test2/OUTCARp")
+outcat = Vasprun("/share/home/skk/wcx/test2/vasprun.xml", ionic_step_skip=None,
+                 ionic_step_offset=0, parse_dos=True,
+                 parse_eigen=True, parse_projected_eigen=False,
+                 parse_potcar_file=True, occu_tol=1e-8,
+                 exception_on_bad_xml=True)
+outcat.dielectric
+# outcat.read_freq_dielectric()
 
-outcat.read_freq_dielectric()
-a = outcat.dielectric_tensor_function
-a = a[:,0,0]
+
 
 
 
