@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="qm9" uuid="cc2d4a7d-8d22-4b67-abf6-de49da4c0855">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:F:\machine learning\cam3d\Instance\Instance3\qm9.db</jdbc-url>
+    </data-source>
+  </component>
+</project>
