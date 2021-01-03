@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'bgp-docs'
+project = 'cm3d-docs'
 copyright = '2020, boliqq07'
 author = 'boliqq07'
 
