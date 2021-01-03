@@ -1,30 +1,22 @@
 import collections
-import os
 import re
 
 import numpy as np
 from monty.io import zopen
-from pymatgen.electronic_structure.plotter import BSDOSPlotter
-from pymatgen.io.vasp import Kpoints
-from pymatgen.io.vasp.outputs import Outcar, Vasprun
+from pymatgen.io.vasp.outputs import Outcar
+
 
 ####dos#####
-# read vasprun.xml，get band and dos information
-os.chdir(r'/share/home/skk/wcx/dielectricsPe.files/0'
-)
-bs_vasprun = Vasprun("/share/home/skk/wcx/dielectricsPe.files/0/vasprun.xml", parse_projected_eigen=True)
-kp = bs_vasprun.structures[0]
-kp = Kpoints.automatic_density(kp, 10, force_gamma=False)
-kp.write_file("KPOINTS")
-bs_data = bs_vasprun.get_band_structure()
+# # read vasprun.xml，get band and dos information
+# bs_vasprun = Vasprun("vasprun.xml", parse_projected_eigen=True)
+# bs_data = bs_vasprun.get_band_structure(line_mode=True)
 #
-
-dos_data = bs_vasprun.complete_dos
-# set figure parameters, draw figure
-banddos_fig = BSDOSPlotter(bs_projection='elements', dos_projection='elements',
-                           )
-mplt = banddos_fig.get_plot(bs=bs_data, dos=dos_data)
-mplt.savefig("a.png")
+# dos_vasprun = Vasprun("vasprun.xml")
+# dos_data = dos_vasprun.complete_dos
+# # set figure parameters, draw figure
+# banddos_fig = BSDOSPlotter(bs_projection='elements', dos_projection='elements',
+#                            )
+# banddos_fig.get_plot(bs=bs_data, dos=dos_data)
 #########
 # outcar =Outcar(r'mp-ele-inoc/OUTCAR')
 # chgcar = Chgcar.from_file(r'/home/iap13/wcx/cx_flies/0/CHGCAR')
@@ -66,11 +58,11 @@ mplt.savefig("a.png")
 # plt.show()
 
 
-# outcat = Outcar("/share/home/skk/wcx/test2/OUTCARp")
-#
-# outcat.read_freq_dielectric()
-# a = outcat.dielectric_tensor_function
-# a = a[:,0,0]
+outcat = Outcar("/share/home/skk/wcx/test2/OUTCARp")
+
+outcat.read_freq_dielectric()
+a = outcat.dielectric_tensor_function
+a = a[:,0,0]
 
 
 
