@@ -41,7 +41,7 @@ SYMPREC = 1e-08"""
 INCAR = Incar.from_string(li2)
 INCAR.update({"KSPACING": 0.2, "IBRION": -1, "ISIF": 2, "NELM": 200, "LELF": True, "LAECHG": True, 'LREAL': "Auto"})
 
-path = r"/share/home/skk/wcx/cam3d/Instance/Instance1/dielectricsKim"
+path = r"/home/iap13/wcx/cam3d/Instance/Instance1/dielectricsKim"
 path = os.path.join(path, "cif_merge")
 files = os.listdir(path)
 lists = []
