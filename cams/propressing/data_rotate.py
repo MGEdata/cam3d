@@ -128,7 +128,7 @@ def rotation_axis_by_matrix(data, matrix, times=(2, 2, 2)):
     y = y.reshape(dims, order="A")
     z = z.reshape(dims, order="A")
 
-    new_coords = [y, x, z]
+    new_coords = [x, y, z]
 
     # use map_coordinates to sample values for the new image
     new_img = scipy.ndimage.map_coordinates(n_data, new_coords, order=2)

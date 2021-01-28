@@ -6,6 +6,8 @@ from pymatgen.io.vasp import Elfcar, Chgcar, VolumetricData
 from scipy.interpolate import interp2d
 
 # whether pyplot installed
+from cams.propressing.data_rotate import rotation_axis_by_angle, rote_index
+from cams.propressing.spilt_tri import relative_location, spilt_tri_prism_z
 
 try:
     # import matplotlib
@@ -29,7 +31,7 @@ except ImportError:
 
 class ElePlot:
 
-    def __init__(self, data, angles=(90,90,90)):
+    def __init__(self, data):
         """
 
         Parameters
@@ -38,6 +40,7 @@ class ElePlot:
         """
         self.elf_data = data
         self.grid = self.elf_data.shape
+        self.width=(1,1,1)
 
         self.__logger = logging.getLogger("vaspy.log")
 
@@ -79,152 +82,124 @@ class ElePlot:
         for i in range(nz - 1):
             expanded_data = np.append(expanded_data, added_data, axis=2)
 
+
+
         return expanded_data, expanded_grid
 
-    def _contour_wrapper(self, axis_cut='z', distance=0.5, widths=(1, 1, 1)):
 
-        # expand elf_data and grid
-        elf_data, grid = self.expand_data(self.elf_data, self.grid,
-                                          widths=widths)
-        self.__logger.info('data shape = %s', str(elf_data.shape))
-        # now cut the cube
-        if abs(distance) > 1:
-            raise ValueError('Distance must be between 0 and 1.')
-        if axis_cut in ['X', 'x']:  # cut vertical to x axis
-            nlayer = int(self.grid[0] * distance)
-            z = elf_data[nlayer, :, :]
-            ndim0, ndim1 = grid[2], grid[1]  # y, # z
-            return ndim0, ndim1, z
-        elif axis_cut in ['Y', 'y']:
-            nlayer = int(self.grid[1] * distance)
-            z = elf_data[:, nlayer, :]
-            ndim0, ndim1 = grid[2], grid[0]  # x, z
-            return ndim0, ndim1, z
-        elif axis_cut in ['Z', 'z']:
-            nlayer = int(self.grid[2] * distance)
-            z = elf_data[:, :, nlayer]
-            ndim0, ndim1 = grid[1], grid[0]  # x, y
+    def get_width_by_pbc_max(self,pbc_directions):
+        """the max pbc +1"""
+        if isinstance(pbc_directions, list):
+            pbc_directions=np.concatenate(pbc_directions, axis=0)
+        width = np.max(pbc_directions, axis=0) + 1
+        width = width.astype(int)
+        width = tuple(width.tolist())
+        self.width = width
+        return width
 
-            return ndim0, ndim1, z
+    @staticmethod
+    def get_pbc_index(pbc_direction):
 
-    def plot_contour(self, axis_cut='z', distance=0.5,
-                     show_mode='show', widths=(1, 1, 1)):
+        tpbc_d = np.array(pbc_direction)
 
-        '''
-        Draw the ELF contour map.
-        绘制ELF等值线图,切片.
+        reformed_tpd = [tpbc_d[:, i] + 1 if np.any(tpbc_d[:, i] < 0)
+                            else tpbc_d[:, i] for i in range(tpbc_d.shape[1])]
+        reformed_tpd = np.array(reformed_tpd).T
+        return reformed_tpd
 
-        Parameter in kwargs
-        -------------------
 
-        axis_cut: str
-            ['x', 'X', 'y', 'Y', 'z', 'Z'], axis which will be cut.
-        distance: float
-            (0.0 ~ 1.0), distance to origin
-        show_mode: str
-            'save' or 'show'
-        widths: tuple of int,
-            number of replication on x, y, z axis
-        '''
+class ChgCar(Chgcar, ElePlot):
 
-        ndim0, ndim1, z = self._contour_wrapper(axis_cut=axis_cut, distance=distance,
-                                                widths=widths)
+    def __init__(self, poscar, data, data_aug=None):
+        Chgcar.__init__(self, poscar, data, data_aug)
+        self.elf_data = self.data["total"]
+        ElePlot.__init__(self, data=self.elf_data)
 
-        # do 2d interpolation
-        # get slice object
-        s = np.s_[0:ndim0:1, 0:ndim1:1]
-        x, y = np.ogrid[s]
-        self.__logger.info('z shape = %s, x shape = %s, y shape = %s',
-                           str(z.shape), str(x.shape), str(y.shape))
-        mx, my = np.mgrid[s]
-        # use cubic 2d interpolation
-        interpfunc = interp2d(x, y, z, kind='cubic')
-        newx = np.linspace(0, ndim0, 600)
-        newy = np.linspace(0, ndim1, 600)
-        # -----------for plot3d---------------------
-        ms = np.s_[0:ndim0:600j, 0:ndim1:600j]  # |
-        newmx, newmy = np.mgrid[ms]  # |
-        # -----------for plot3d---------------------
-        newz = interpfunc(newx, newy)
+    @classmethod
+    def from_file(cls, filename):
+        """
+        Reads a CHGCAR file.
 
-        # plot 2d contour map
-        fig2d_1, fig2d_2 = plt.figure(1), plt.figure(2)
+        :param filename: Filename
+        :return: Chgcar
+        """
+        (poscar, data, data_aug) = VolumetricData.parse_file(filename)
+        return cls(poscar, data, data_aug=data_aug)
 
-        extent = [np.min(newx), np.max(newx), np.min(newy), np.max(newy)]
-        ax1 = fig2d_1.add_subplot()
-        img = ax1.imshow(newz, extent=extent, origin='lower')
-        # coutour plot
-        ax2 = fig2d_2.add_subplot()
-        cs = ax2.contour(newx.reshape(-1), newy.reshape(-1), newz, 20, extent=extent)
-        ax2.clabel(cs)
-        plt.colorbar(mappable=img)
+    def get_cartesian_data(self, data=None, times=(2, 2, 2), pbc_directions=None):
 
-        # 3d plot
-        fig3d = plt.figure(4, figsize=(12, 8))
-        ax3d = fig3d.gca(projection='3d')
-        ax3d.plot_surface(newmx, newmy, newz, cmap=plt.cm.RdBu_r)
+        angles = self.structure.lattice.angles
+        if data is None:
+            if isinstance(pbc_directions,tuple):
+                elf_data, grid = self.expand_data(self.elf_data, self.grid, pbc_directions)
+                self.width = pbc_directions
+                self.cartesian_data = rotation_axis_by_angle(elf_data, angles=angles, times=times)
+            elif pbc_directions is not None:
+                widths = self.get_width_by_pbc_max(pbc_directions)
+                elf_data, grid = self.expand_data(self.elf_data, self.grid, widths)
+                self.cartesian_data = rotation_axis_by_angle(elf_data, angles=angles, times=times)
+            else:
+                self.cartesian_data = rotation_axis_by_angle(self.elf_data, angles=angles, times=times)
 
-        # save or show
-        if show_mode == 'show':
-            fig2d_1.show("1")
-            fig2d_2.show("2")
-            fig3d.show("3")
-        elif show_mode == 'save':
-            fig2d_1.savefig('surface2d.png', dpi=500)
-            fig2d_2.savefig('contour2d.png', dpi=500)
-            fig3d.savefig('surface3d.png', dpi=500)
         else:
-            raise ValueError('Unrecognized show mode parameter : ' +
-                             show_mode)
+            self.cartesian_data = rotation_axis_by_angle(data, angles=angles, times=times)
 
-    def plot_mcontour3d(self, show_mode='show', **kwargs):
-        '''
-        use mayavi.mlab to plot 3d contour.
+        return self.cartesian_data
 
-        Parameter
-        ---------
-        kwargs: {
-            'maxct'   : float,max contour number,
-            'nct'     : int, number of contours,
-            'opacity' : float, opacity of contour,
-            'widths'   : tuple of int
-                        number of replication on x, y, z axis,
-        }
-        '''
-        if not mayavi_installed:
-            self.__logger.warning("Mayavi is not installed on your device.")
-            return
-        # set parameters
-        widths = kwargs['widths'] if 'widths' in kwargs else (1, 1, 1)
-        elf_data, grid = self.expand_data(self.elf_data, self.grid, widths)
-        #        import pdb; pdb.set_trace()
-        maxdata = np.max(elf_data)
-        maxct = kwargs['maxct'] if 'maxct' in kwargs else maxdata
-        # check maxct
-        if maxct > maxdata:
-            self.__logger.warning("maxct is larger than %f", maxdata)
-        opacity = kwargs['opacity'] if 'opacity' in kwargs else 0.6
-        nct = kwargs['nct'] if 'nct' in kwargs else 5
-        # plot surface
-        surface = mlab.contour3d(elf_data)
-        # set surface attrs
-        surface.actor.property.opacity = opacity
-        surface.contour.maximum_contour = maxct
-        surface.contour.number_of_contours = nct
-        # reverse axes labels
-        mlab.axes(xlabel='z', ylabel='y', zlabel='x')  # 是mlab参数顺序问题?
-        mlab.outline()
-        if show_mode == 'show':
-            mlab.show()
-        elif show_mode == 'save':
-            mlab.savefig('mlab_contour3d.png')
+    def trans(self,point_indexes, pbc_direction):
+        frac_coords = self.structure.frac_coords
+        point = frac_coords[point_indexes, :]
+        if pbc_direction is None:
+            pass
         else:
-            raise ValueError('Unrecognized show mode parameter : ' +
-                             show_mode)
+            point = point + self.get_pbc_index(pbc_direction)
+        return point
 
-        return
 
-    def plot_field(self, show_mode="show", **kwargs):
+    def get_tri_data_z(self, point_indexes, pbc_direction=None, z_range=None, z_absolute=True):
+        assert hasattr(self, 'cartesian_data'), "please '.get_cartesian_data' first."
+        point = self.trans(point_indexes, pbc_direction)
+        point = np.array(point)/np.array(self.width)
+
+        percent = rote_index(point, self.cartesian_data.shape, data_init=False, angles= self.structure.lattice.angles,
+                             return_type="int")
+        maxs = np.max(percent.astype(int), axis=0)
+        mins = np.min(percent.astype(int), axis=0)
+        if z_range is None:
+            data_target = self.cartesian_data[mins[0]:maxs[0], mins[1]:maxs[1], :]
+        elif z_range == "zero_to_half":
+            data_target = self.cartesian_data[mins[0]:maxs[0], mins[1]:maxs[1], :int(self.cartesian_data.shape[2] / 2)]
+        elif z_range == "half_to_all":
+            data_target = self.cartesian_data[mins[0]:maxs[0], mins[1]:maxs[1], int(self.cartesian_data.shape[2] / 2):]
+        elif isinstance(z_range,tuple) and z_absolute:
+            data_target = self.cartesian_data[mins[0]:maxs[0], mins[1]:maxs[1], z_range[0]:z_range[1]]
+        elif isinstance(z_range, tuple) and not z_absolute:
+            z_r=(int(z_range[0]*self.cartesian_data.shape[2]), int(z_range[1]*self.cartesian_data.shape[2]))
+            data_target = self.cartesian_data[mins[0]:maxs[0], mins[1]:maxs[1], z_r[0]:z_r[1]]
+        else:
+            raise TypeError("The z_range must be None(all),'zero_to_half','half_to_all' or tuple of with int 2")
+        relative = relative_location(percent[:, (0, 1)])
+        site = relative * np.array(data_target.shape[:2])
+        data_target_tri = spilt_tri_prism_z(data_target.shape, site, z_range=(0, data_target.shape[2]),
+                                            index_percent=False)
+        data_result = data_target_tri * data_target
+        return data_result
+
+    def get_cubic_data(self, point_indexes,pbc_direction=None):
+        assert hasattr(self, 'cartesian_data'), "please '.get_cartesian_data' first."
+
+        point = self.trans(point_indexes, pbc_direction)
+
+        percent = rote_index(point, self.cartesian_data.shape, data_init=False, angles= self.structure.lattice.angles,
+                             return_type="int")
+        maxs = np.max(percent.astype(int), axis=0)
+        mins = np.min(percent.astype(int), axis=0)
+
+        data_result = self.cartesian_data[mins[0]:maxs[0], mins[1]:maxs[1], mins[2]:maxs[2]]
+
+        return data_result
+
+    def plot_field(self, show_mode="show", data=None, **kwargs):
         """
 
         use mayavi.mlab to plot 3d field.
@@ -252,7 +227,12 @@ class ElePlot:
         axis_cut = kwargs['axis_cut'] if 'axis_cut' in kwargs else 'z'
         nct = kwargs['nct'] if 'nct' in kwargs else 3
         widths = kwargs['widths'] if 'widths' in kwargs else (1, 1, 1)
-        elf_data, grid = self.expand_data(self.elf_data, self.grid, widths)
+        times = kwargs['times'] if 'times' in kwargs else (2, 2, 2)
+        if data is None:
+            elf_data, grid = self.expand_data(self.elf_data, self.grid, widths)
+            elf_data = self.get_cartesian_data(data=elf_data, times=times)
+        else:
+            elf_data = data
         # create pipeline
         field = mlab.pipeline.scalar_field(elf_data)  # data source
         mlab.pipeline.volume(field, vmin=vmin, vmax=vmax)  # put data into volumn to visualize
@@ -280,38 +260,19 @@ class ElePlot:
         return None
 
 
-class ChgCar(Chgcar, ElePlot):
-
-    def __init__(self, poscar, data, data_aug=None):
-        Chgcar.__init__(self, poscar, data, data_aug)
-        self.elf_data = self.data["total"]
-        ElePlot.__init__(self, data=self.elf_data)
-
-    @classmethod
-    def from_file(cls, filename):
-        """
-        Reads a CHGCAR file.
-
-        :param filename: Filename
-        :return: Chgcar
-        """
-        (poscar, data, data_aug) = VolumetricData.parse_file(filename)
-        return cls(poscar, data, data_aug=data_aug)
-
-
-class ElfCar(Elfcar, ElePlot):
-    def __init__(self, poscar, data, data_aug=None):
-        ElfCar.__init__(self, poscar, data, data_aug)
-        self.elf_data = self.data["total"]
-        ElePlot.__init__(self, data=self.elf_data)
-
-    @classmethod
-    def from_file(cls, filename):
-        """
-        Reads a CHGCAR file.
-
-        :param filename: Filename
-        :return: Chgcar
-        """
-        (poscar, data, data_aug) = VolumetricData.parse_file(filename)
-        return cls(poscar, data, data_aug=data_aug)
+# class ElfCar(Elfcar, ElePlot):
+#     def __init__(self, poscar, data, data_aug=None):
+#         ElfCar.__init__(self, poscar, data, data_aug)
+#         self.elf_data = self.data["total"]
+#         ElePlot.__init__(self, data=self.elf_data)
+#
+#     @classmethod
+#     def from_file(cls, filename):
+#         """
+#         Reads a CHGCAR file.
+#
+#         :param filename: Filename
+#         :return: Chgcar
+#         """
+#         (poscar, data, data_aug) = VolumetricData.parse_file(filename)
+#         return cls(poscar, data, data_aug=data_aug)

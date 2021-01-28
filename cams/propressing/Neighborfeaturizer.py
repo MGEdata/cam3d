@@ -9,16 +9,20 @@
 """
 this is a description
 """
+from collections import Counter
+
 import numpy as np
 from abc import ABC
 from copy import deepcopy
 
 from featurebox.featurizers.base import BaseFeaturizer
 
+from cams.propressing.electro import ChgCar
+
 
 class Neighborizer(BaseFeaturizer, ABC):
 
-    def __init__(self, tol=1e-3, *, n_jobs=-1, on_errors='raise', return_type='any',neg_tol = 5e-2):
+    def __init__(self, tol=1e-3, *, n_jobs=-1, on_errors='raise', return_type='any',neg_tol = 1e-3):
         """
 
         Parameters
@@ -63,7 +67,8 @@ class Neighborizer(BaseFeaturizer, ABC):
         self.neighbors = neighbors
         return neighbors
 
-    def find_neighbor_from_center(self, c, n_nei=1, neighbors=None, nei_index=None):
+    def find_neighbor_from_center(self, c, n_nei=1, neighbors=None, nei_index=None,
+                                  del_pbc=True):
         """
 
         Parameters
@@ -76,10 +81,12 @@ class Neighborizer(BaseFeaturizer, ABC):
         n_nei:
             number of neighbor types.
             The first ,second ...
+        del_pbc:
+
 
         Returns
         -------
-        (sites,distances)
+        (sites,direction,distances)
         """
         if neighbors is None:
             if hasattr(self, 'neighbors'):
@@ -88,11 +95,12 @@ class Neighborizer(BaseFeaturizer, ABC):
                 raise NotImplemented("Please featurize first")
 
         dec = int(-np.log10(self.tol))
-        centers, neighbors, _, distances = deepcopy(neighbors)
+        centers, neighbors, _la, distances = deepcopy(neighbors)
         distances = np.round(distances, decimals=dec)
 
         index = np.where(centers == c)
         neighbors = neighbors[index]
+        _la = _la[index]
         distances = distances[index]
 
         # 指定对象
@@ -104,6 +112,13 @@ class Neighborizer(BaseFeaturizer, ABC):
             index2 = index2 > 0
             neighbors = neighbors[index2]
             distances = distances[index2]
+            _la = _la[index2]
+        # del pbc
+        if del_pbc:
+            index3 =np.array([k for k,i in enumerate(_la) if np.all(i==0.0) ])
+            neighbors = neighbors[index3]
+            distances = distances[index3]
+            _la = _la[index3]
 
         dis = list(set(distances))
         dis.sort()
@@ -111,7 +126,7 @@ class Neighborizer(BaseFeaturizer, ABC):
         if 0 in dis:
             dis.remove(0)  # 忽略自身对
 
-        # tol delete
+        # couple the near point bu neg_tol
         cc = np.diff(dis)
         cc = np.append(cc, np.inf)
         d_index = np.where(abs(cc) > self.neg_tol)[0]
@@ -119,11 +134,8 @@ class Neighborizer(BaseFeaturizer, ABC):
 
         n_nei_index = [np.where(abs(distances - i) < self.neg_tol) for i in dis[:n_nei]]
         r_nei = [neighbors[i] for i in n_nei_index]
-
-        # 删除重复统计。
-        r_nei = [np.array(list(set(list(i)))) for i in r_nei]
-        # 没有删除重复统计距离，用来检验。
+        direct = [_la[i] for i in n_nei_index]
         rd = [distances[i] for i in n_nei_index]
 
         # 周期性图像偏移，所以不同紧邻结果位置可能重复。
-        return r_nei, rd
+        return r_nei,direct, rd
